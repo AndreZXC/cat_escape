@@ -18,39 +18,84 @@ def load_image(name):
     return image
 
 
-grass_images = {'bottom': load_image('grass_block\\bottom_cutted.png'),
-                'top': load_image('grass_block\\top_cutted.png'),
-                'right': load_image('grass_block\\right_cutted.png'),
-                'left': load_image('grass_block\\left_cutted.png'),
-                'default': load_image('grass_block\\not_cutted.png'),
-                'top_right': load_image('grass_block\\top_right_cutted.png'),
-                'top_left': load_image('grass_block\\top_left_cutted.png'),
-                'bottom_right': load_image('grass_block\\bottom_right_cutted.png'),
-                'bottom_left': load_image('grass_block\\bottom_left_cutted.png'),
-                'right_left': load_image('grass_block\\right_left_cutted.png'),
-                'top_bottom': load_image('grass_block\\top_bottom_cutted.png'),
-                'bottom_ledge': load_image('grass_block\\bottom_ledge.png'),
-                'top_ledge': load_image('grass_block\\top_ledge.png'),
-                'right_ledge': load_image('grass_block\\right_ledge.png'),
-                'left_ledge': load_image('grass_block\\left_ledge.png'),
-                'all': load_image('grass_block\\all_cutted.png')
-                }
+background_image = pygame.transform.smoothscale(load_image('background.png'), (width, height))
 
 
 class Grass(pygame.sprite.Sprite):
+    grass_images = {(True, True, True, False): load_image('grass_block\\bottom_cutted.png'),
+                    (True, True, False, True): load_image('grass_block\\top_cutted.png'),
+                    (True, False, True, True): load_image('grass_block\\right_cutted.png'),
+                    (False, True, True, True): load_image('grass_block\\left_cutted.png'),
+                    (True, True, True, True): load_image('grass_block\\not_cutted.png'),
+                    (True, False, False, True): load_image('grass_block\\top_right_cutted.png'),
+                    (False, True, False, True): load_image('grass_block\\top_left_cutted.png'),
+                    (True, False, True, False): load_image('grass_block\\bottom_right_cutted.png'),
+                    (False, True, True, False): load_image('grass_block\\bottom_left_cutted.png'),
+                    (False, False, True, True): load_image('grass_block\\right_left_cutted.png'),
+                    (True, True, False, False): load_image('grass_block\\top_bottom_cutted.png'),
+                    (False, False, False, True): load_image('grass_block\\bottom_ledge.png'),
+                    (False, False, True, False): load_image('grass_block\\top_ledge.png'),
+                    (True, False, False, False): load_image('grass_block\\right_ledge.png'),
+                    (False, True, False, False): load_image('grass_block\\left_ledge.png'),
+                    (False, False, False, False): load_image('grass_block\\all_cutted.png')
+                    }
+    for k in grass_images.keys():
+        grass_images[k] = pygame.transform.smoothscale(grass_images[k], (tile_width, tile_height))
+
     def __init__(self, x, y, mode):
         super().__init__(grass)
-        self.image = grass_images[mode]
-        self.image = pygame.transform.smoothscale(self.image, (tile_width, tile_height))
+        self.image = Grass.grass_images[mode]
         self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
 
 
+class Door(pygame.sprite.Sprite):
+    door_image = pygame.transform.smoothscale(load_image('door.png'), (tile_width, tile_height))
+
+    def __init__(self, x, y):
+        super().__init__(door_gr)
+        self.image = Door.door_image
+        self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
+
+
+def load_level(level):
+    fullname = os.path.join('levels', level)
+    if not os.path.isfile(fullname):
+        print(f"Файл уровня '{fullname}' не найден")
+        sys.exit()
+    with open(fullname, 'r') as lvl:
+        level_map = [line.strip() for line in lvl]
+        level = list(map(lambda x: x.ljust(width // tile_width, 'g'), level_map))
+        for i in range(height // tile_height - len(level)):
+            level.append('g' * (width // tile_width))
+        for y in range(len(level)):
+            for x in range(len(level[y])):
+                if level[y][x] == 'g':
+                    h1 = h2 = v1 = v2 = False
+                    if x == 0:
+                        h1 = True
+                    elif level[y][x - 1] == 'g':
+                        h1 = True
+                    if x == len(level[y]) - 1:
+                        h2 = True
+                    elif level[y][x + 1] == 'g':
+                        h2 = True
+                    if y == 0:
+                        v1 = True
+                    elif level[y - 1][x] == 'g':
+                        v1 = True
+                    if y == len(level) - 1:
+                        v2 = True
+                    elif level[y + 1][x] == 'g':
+                        v2 = True
+                    Grass(x, y, (h1, h2, v1, v2))
+                if level[y][x] == 'd':
+                    Door(x, y)
+
+
 grass = pygame.sprite.Group()
-for i in range(len(grass_images.keys())):
-    Grass(i, i, list(grass_images.keys())[i])
+door_gr = pygame.sprite.Group()
+load_level('1.txt')
 plaing = True
-background_image = load_image('background.png')
-background_image = pygame.transform.smoothscale(background_image, (width, height))
 while plaing:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -58,3 +103,4 @@ while plaing:
     pygame.display.flip()
     screen.blit(background_image, (0, 0))
     grass.draw(screen)
+    door_gr.draw(screen)
