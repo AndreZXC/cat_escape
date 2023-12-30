@@ -33,8 +33,8 @@ class Grass(pygame.sprite.Sprite):
                     (False, True, True, False): load_image('grass_block\\bottom_left_cutted.png'),
                     (False, False, True, True): load_image('grass_block\\right_left_cutted.png'),
                     (True, True, False, False): load_image('grass_block\\top_bottom_cutted.png'),
-                    (False, False, False, True): load_image('grass_block\\bottom_ledge.png'),
-                    (False, False, True, False): load_image('grass_block\\top_ledge.png'),
+                    (False, False, True, False): load_image('grass_block\\bottom_ledge.png'),
+                    (False, False, False, True): load_image('grass_block\\top_ledge.png'),
                     (True, False, False, False): load_image('grass_block\\right_ledge.png'),
                     (False, True, False, False): load_image('grass_block\\left_ledge.png'),
                     (False, False, False, False): load_image('grass_block\\all_cutted.png')
