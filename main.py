@@ -81,7 +81,7 @@ class Start(pygame.sprite.Sprite):
 class Levelbtn(pygame.sprite.Sprite):
     level_im = []
     level_im_2 = []
-    for i in range(1, 7):
+    for i in range(1, 11):
         level_im.append(pygame.transform.smoothscale(load_image(f"buttons\\level_{i}.png"),
                                                      (81, 81)))
         level_im_2.append(pygame.transform.smoothscale(load_image(f"buttons\\level_{i}_2.png"),
@@ -104,7 +104,7 @@ class Levelbtn(pygame.sprite.Sprite):
                                                     self.image.get_width() // 2),
                                                    height // 5 * 3 - self.image.get_width())
         else:
-            self.rect = self.image.get_rect().move((width // 2, self.image.get_width() // 2),
+            self.rect = self.image.get_rect().move((width // 2 - self.image.get_width() // 2),
                                                    height // 5 * 4 - self.image.get_width())
 
     def update(self, pos, mode):
@@ -171,7 +171,7 @@ while MENU_LOAD:
     screen.blit(background_image, (0, 0))
     buttons.draw(screen)
 buttons.empty()
-for i in range(6):
+for i in range(10):
     Levelbtn(i)
 grass = pygame.sprite.Group()
 door_gr = pygame.sprite.Group()
