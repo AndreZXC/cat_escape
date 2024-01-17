@@ -92,19 +92,15 @@ def load_level(level):
                     Door(x, y)
                 elif level[y][x] == 'c':
                     Player(x, y)
-                    new_player = Player(x, y)
-    return new_player
-
-
-player_image = load_image('cat.jpg')
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y):
+    image = pygame.transform.smoothscale(load_image('cat\\cat_base.png'), (tile_width, tile_height))
+
+    def __init__(self, x, y):
         super().__init__(player_group, all_sprites)
-        self.image = player_image
-        self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = tile_width * pos_x + 13, tile_height * pos_y + 5
+        self.image = Player.image
+        self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
 
     def update(self, args):
         self.rect = self.rect.move(args)
@@ -116,9 +112,8 @@ all_sprites = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 grass = pygame.sprite.Group()
 door_gr = pygame.sprite.Group()
+STEP = tile_width
 load_level('1.txt')
-STEP = 50
-player = load_level('1.txt')
 plaing = True
 while plaing:
     for event in pygame.event.get():
@@ -126,13 +121,13 @@ while plaing:
             plaing = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
-                player.update((-STEP, 0))
+                player_group.update((-STEP, 0))
             if event.key == pygame.K_RIGHT:
-                player.update((+STEP, 0))
+                player_group.update((+STEP, 0))
             if event.key == pygame.K_DOWN:
-                player.update((0, +STEP))
+                player_group.update((0, +STEP))
             if event.key == pygame.K_UP:
-                player.update((0, -STEP))
+                player_group.update((0, -STEP))
     pygame.display.flip()
     screen.blit(background_image, (0, 0))
     player_group.draw(screen)
