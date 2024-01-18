@@ -54,6 +54,10 @@ def load_level(level):
                     Grass(x, y, (h1, h2, v1, v2))
                 if level[y][x] == 'd':
                     Door(x, y)
+                if level[y][x] == 'm':
+                    Money(x, y)
+                if level[y][x] == 'c':
+                    Player(x, y)
 
 
 class Start(pygame.sprite.Sprite):
@@ -142,7 +146,7 @@ class Grass(pygame.sprite.Sprite):
         grass_images[k] = pygame.transform.smoothscale(grass_images[k], (tile_width, tile_height))
 
     def __init__(self, x, y, mode):
-        super().__init__(grass)
+        super().__init__(grass, all_sprites)
         self.image = Grass.grass_images[mode]
         self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
 
@@ -151,9 +155,47 @@ class Door(pygame.sprite.Sprite):
     door_image = pygame.transform.smoothscale(load_image('door.png'), (tile_width, tile_height))
 
     def __init__(self, x, y):
-        super().__init__(door_gr)
+        super().__init__(door_gr, all_sprites)
         self.image = Door.door_image
         self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
+
+
+class Money(pygame.sprite.Sprite):
+    image = load_image('money.png')
+
+    def __init__(self, x, y):
+        super().__init__(money_sprites, all_sprites)
+        self.frames = []
+        self.cut_sheet(Money.image, 1, 12)
+        self.cur_frame = 0
+        self.image = self.frames[self.cur_frame]
+        self.rect = self.rect.move(tile_width * x, tile_height * y)
+
+    def cut_sheet(self, sheet, columns, rows):
+        self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+                                sheet.get_height() // rows)
+        for i in range(rows):
+            frame_location = (0, self.rect.h * i)
+            self.frames.append(pygame.transform.smoothscale(sheet.subsurface(pygame.Rect(
+                frame_location, self.rect.size)), (tile_width, tile_height)))
+
+    def update(self):
+        self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+        self.image = self.frames[self.cur_frame]
+
+
+class Player(pygame.sprite.Sprite):
+    image = pygame.transform.smoothscale(load_image('cat\\cat_base.png'), (tile_width, tile_height))
+
+    def __init__(self, x, y):
+        super().__init__(player_group, all_sprites)
+        self.image = Player.image
+        self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
+
+    def update(self, args):
+        self.rect = self.rect.move(args)
+        if pygame.sprite.spritecollideany(self, grass):
+            self.rect = self.rect.move((-args[0], -args[1]))
 
 
 buttons = pygame.sprite.Group()
@@ -173,8 +215,11 @@ while MENU_LOAD:
 buttons.empty()
 for i in range(10):
     Levelbtn(i)
+all_sprites = pygame.sprite.Group()
 grass = pygame.sprite.Group()
 door_gr = pygame.sprite.Group()
+money_sprites = pygame.sprite.Group()
+player_group = pygame.sprite.Group()
 LEVEL_CHOISE = True
 while LEVEL_CHOISE:
     for event in pygame.event.get():
@@ -187,12 +232,27 @@ while LEVEL_CHOISE:
     pygame.display.flip()
     screen.blit(background_image, (0, 0))
     buttons.draw(screen)
+MONEY_UPDATE = pygame.USEREVENT + 1
+pygame.time.set_timer(MONEY_UPDATE, 100)
+STEP = tile_width
+clock = pygame.time.Clock()
 plaing = True
 while plaing:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             plaing = False
+        if event.type == MONEY_UPDATE:
+            money_sprites.update()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                player_group.update((-STEP, 0))
+            if event.key == pygame.K_RIGHT:
+                player_group.update((+STEP, 0))
+            if event.key == pygame.K_DOWN:
+                player_group.update((0, +STEP))
+            if event.key == pygame.K_UP:
+                player_group.update((0, -STEP))
     pygame.display.flip()
     screen.blit(background_image, (0, 0))
-    grass.draw(screen)
-    door_gr.draw(screen)
+    all_sprites.draw(screen)
+    clock.tick(30)

@@ -98,7 +98,7 @@ class Player(pygame.sprite.Sprite):
     image = pygame.transform.smoothscale(load_image('cat\\cat_base.png'), (tile_width, tile_height))
 
     def __init__(self, x, y):
-        super().__init__(player_group, all_sprites)
+        super().__init__(player_group)
         self.image = Player.image
         self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
 
@@ -108,7 +108,6 @@ class Player(pygame.sprite.Sprite):
             self.rect = self.rect.move((-args[0], -args[1]))
 
 
-all_sprites = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 grass = pygame.sprite.Group()
 door_gr = pygame.sprite.Group()
