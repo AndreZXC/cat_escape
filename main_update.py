@@ -2,11 +2,17 @@ import pygame
 import os
 import sys
 
-
 pygame.init()
 size = width, height = 720, 720
 screen = pygame.display.set_mode(size)
 tile_width = tile_height = 36
+all_sprites = pygame.sprite.Group()
+grass = pygame.sprite.Group()
+door_gr = pygame.sprite.Group()
+money_sprites = pygame.sprite.Group()
+player_group = pygame.sprite.Group()
+buttons = pygame.sprite.Group()
+lvl = 0
 
 
 def load_image(name):
@@ -19,6 +25,8 @@ def load_image(name):
 
 
 background_image = pygame.transform.smoothscale(load_image('background.png'), (width, height))
+pygame.display.set_icon(load_image('cat\\cat_base.png'))
+pygame.display.set_caption('Котик в бегах — by Andre and Eleonora')
 
 
 def load_level(level):
@@ -57,7 +65,8 @@ def load_level(level):
                 if level[y][x] == 'm':
                     Money(x, y)
                 if level[y][x] == 'c':
-                    Player(x, y)
+                    player = Player(x, y)
+        return player
 
 
 class Start(pygame.sprite.Sprite):
@@ -65,24 +74,25 @@ class Start(pygame.sprite.Sprite):
     image_2 = pygame.transform.smoothscale(load_image('buttons\\start_2.png'), (270, 81))
 
     def __init__(self):
-        super().__init__(buttons)
+        super().__init__(buttons, all_sprites)
         self.image = Start.image
         self.rect = self.image.get_rect().move(width // 2 - self.image.get_width() // 2,
                                                height // 3 * 2 - self.image.get_height() // 2)
 
-    def update(self, pos, mode):
-        if mode == 'move':
+    def update(self, pos, change_mode):
+        if change_mode == 'move':
             if self.rect.collidepoint(pos):
                 self.image = Start.image_2
             else:
                 self.image = Start.image
-        if mode == 'press':
+        if change_mode == 'press':
             if self.rect.collidepoint(pos):
-                global MENU_LOAD
-                MENU_LOAD = False
+                global all_sprites, buttons
+                all_sprites.empty()
+                buttons.empty()
 
 
-class Levelbtn(pygame.sprite.Sprite):
+class LevelBtn(pygame.sprite.Sprite):
     level_im = []
     level_im_2 = []
     for i in range(1, 11):
@@ -92,8 +102,8 @@ class Levelbtn(pygame.sprite.Sprite):
                                                        (81, 81)))
 
     def __init__(self, n):
-        super().__init__(buttons)
-        self.image = Levelbtn.level_im[n]
+        super().__init__(buttons, all_sprites)
+        self.image = LevelBtn.level_im[n]
         self.number = n
         if 0 <= n <= 2:
             self.rect = self.image.get_rect().move((width // 4 * ((n % 3) + 1) -
@@ -111,17 +121,18 @@ class Levelbtn(pygame.sprite.Sprite):
             self.rect = self.image.get_rect().move((width // 2 - self.image.get_width() // 2),
                                                    height // 5 * 4 - self.image.get_width())
 
-    def update(self, pos, mode):
-        if mode == 'move':
+    def update(self, pos, change_mode):
+        if change_mode == 'move':
             if self.rect.collidepoint(pos):
-                self.image = Levelbtn.level_im_2[self.number]
+                self.image = LevelBtn.level_im_2[self.number]
             else:
-                self.image = Levelbtn.level_im[self.number]
-        if mode == 'press':
+                self.image = LevelBtn.level_im[self.number]
+        if change_mode == 'press':
             if self.rect.collidepoint(pos):
-                global LEVEL_CHOISE
-                load_level(f'{self.number + 1}.txt')
-                LEVEL_CHOISE = False
+                global buttons, all_sprites, lvl
+                buttons.empty()
+                all_sprites.empty()
+                lvl = self.number + 1
 
 
 class Grass(pygame.sprite.Sprite):
@@ -191,73 +202,128 @@ class Player(pygame.sprite.Sprite):
         super().__init__(player_group, all_sprites)
         self.image = Player.image
         self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
+        self.movement = False
+        self.direction = (0, 0)
 
-    def update(self, args):
-        self.rect = self.rect.move(args[0], args[1])
+    def update(self):
+        self.rect = self.rect.move(self.direction[0], self.direction[1])
         if pygame.sprite.spritecollideany(self, grass):
-            self.rect = self.rect.move((-args[0], -args[1]))
-            global move, mode
-            move = True
-            mode = 0
+            self.rect = self.rect.move((-self.direction[0], -self.direction[1]))
+            self.movement = False
+            self.direction = (0, 0)
 
 
 class BackBtn(pygame.sprite.Sprite):
+    image = pygame.transform.smoothscale(load_image('buttons\\back.png'), (tile_width, tile_height))
+    image_2 = pygame.transform.smoothscale(load_image('buttons\\back_2.png'),
+                                           (tile_width, tile_height))
+
     def __init__(self, pos):
-        super().__init__(buttons)
+        super().__init__(buttons, all_sprites)
+        self.image = BackBtn.image
+        self.rect = self.image.get_rect().move(pos)
+        self.back = False
+
+    def update(self, pos, change_mode):
+        if change_mode == 'move':
+            if self.rect.collidepoint(pos):
+                self.image = BackBtn.image_2
+            else:
+                self.image = BackBtn.image
+        if change_mode == 'press':
+            if self.rect.collidepoint(pos):
+                self.back = True
 
 
+def start():
+    Start()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            if event.type == pygame.MOUSEMOTION:
+                buttons.update(event.pos, 'move')
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                buttons.update(event.pos, 'press')
+                if not buttons:
+                    level_choice()
+        pygame.display.flip()
+        screen.blit(background_image, (0, 0))
+        all_sprites.draw(screen)
 
 
+def level_choice():
+    for i in range(10):
+        LevelBtn(i)
+    backbtn = BackBtn((20, height - 20 - BackBtn.image.get_height()))
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            if event.type == pygame.MOUSEMOTION:
+                buttons.update(event.pos, 'move')
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                buttons.update(event.pos, 'press')
+                if not buttons:
+                    backbtn = game(lvl)
+        if backbtn.back:
+            all_sprites.empty()
+            buttons.empty()
+            Start()
+            return
+        pygame.display.flip()
+        screen.blit(background_image, (0, 0))
+        buttons.draw(screen)
 
-for i in range(10):
-    Levelbtn(i)
-all_sprites = pygame.sprite.Group()
-grass = pygame.sprite.Group()
-door_gr = pygame.sprite.Group()
-money_sprites = pygame.sprite.Group()
-player_group = pygame.sprite.Group()
-LEVEL_CHOISE = True
-while LEVEL_CHOISE:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            sys.exit()
-        if event.type == pygame.MOUSEMOTION:
-            buttons.update(event.pos, 'move')
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            buttons.update(event.pos, 'press')
-    pygame.display.flip()
-    screen.blit(background_image, (0, 0))
-    buttons.draw(screen)
-MONEY_UPDATE = pygame.USEREVENT + 1
-pygame.time.set_timer(MONEY_UPDATE, 80)
-PLAYER_MOVE = pygame.USEREVENT + 2
-pygame.time.set_timer(PLAYER_MOVE, 40)
-STEP = tile_width
-fps = 60
-mode = 0
-move = True
-clock = pygame.time.Clock()
-plaing = True
-while plaing:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            plaing = False
-        if event.type == MONEY_UPDATE:
-            money_sprites.update()
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_LEFT and move:
-                mode = (-STEP, 0)
-            if event.key == pygame.K_RIGHT and move:
-                mode = (+STEP, 0)
-            if event.key == pygame.K_DOWN and move:
-                mode = (0, +STEP)
-            if event.key == pygame.K_UP and move:
-                mode = (0, -STEP)
-        if event.type == PLAYER_MOVE:
-            if mode:
-                move = False
-                player_group.update(mode)
-    pygame.display.flip()
-    screen.blit(background_image, (0, 0))
-    all_sprites.draw(screen)
-    clock.tick(60)
+
+def game(level):
+    player = load_level(f'{level}.txt')
+    backbtn = BackBtn((20, 20))
+    MONEY_UPDATE = pygame.USEREVENT + 1
+    pygame.time.set_timer(MONEY_UPDATE, 80)
+    PLAYER_MOVE = pygame.USEREVENT + 2
+    pygame.time.set_timer(PLAYER_MOVE, 40)
+    step = tile_width
+    fps = 60
+    clock = pygame.time.Clock()
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+            if event.type == MONEY_UPDATE:
+                money_sprites.update()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT and not player.movement:
+                    player.direction = (-step, 0)
+                if event.key == pygame.K_RIGHT and not player.movement:
+                    player.direction = (+step, 0)
+                if event.key == pygame.K_DOWN and not player.movement:
+                    player.direction = (0, +step)
+                if event.key == pygame.K_UP and not player.movement:
+                    player.direction = (0, -step)
+            if event.type == pygame.MOUSEMOTION:
+                buttons.update(event.pos, 'move')
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                buttons.update(event.pos, 'press')
+            if event.type == PLAYER_MOVE:
+                if any(player.direction):
+                    player.movement = True
+                    player_group.update()
+        if backbtn.back:
+            all_sprites.empty()
+            grass.empty()
+            door_gr.empty()
+            money_sprites.empty()
+            player_group.empty()
+            buttons.empty()
+            for i in range(10):
+                LevelBtn(i)
+            backbtn = BackBtn((20, height - 20 - BackBtn.image.get_height()))
+            return backbtn
+        pygame.display.flip()
+        screen.blit(background_image, (0, 0))
+        all_sprites.draw(screen)
+        clock.tick(fps)
+
+
+start()
