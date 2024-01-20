@@ -25,6 +25,7 @@ def load_image(name):
 
 
 background_image = pygame.transform.smoothscale(load_image('background.png'), (width, height))
+title_image = pygame.transform.smoothscale(load_image('glav.png'), (630, 310))
 pygame.display.set_icon(load_image('cat\\cat_base.png'))
 pygame.display.set_caption('Котик в бегах — by Andre and Eleonora')
 
@@ -34,8 +35,8 @@ def load_level(level):
     if not os.path.isfile(fullname):
         print(f"Файл уровня '{fullname}' не найден")
         sys.exit()
-    with open(fullname, 'r') as lvl:
-        level_map = [line.strip() for line in lvl]
+    with open(fullname, 'r') as file:
+        level_map = [line.strip() for line in file]
         level = list(map(lambda x: x.ljust(width // tile_width, 'g'), level_map))
         for i in range(height // tile_height - len(level)):
             level.append('g' * (width // tile_width))
@@ -249,6 +250,7 @@ def start():
                     level_choice()
         pygame.display.flip()
         screen.blit(background_image, (0, 0))
+        screen.blit(title_image, (width // 2 - title_image.get_width() // 2, 50))
         all_sprites.draw(screen)
 
 
