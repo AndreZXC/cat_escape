@@ -197,21 +197,64 @@ class Money(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    image = pygame.transform.smoothscale(load_image('cat\\cat_base.png'), (tile_width, tile_height))
+    images = [pygame.transform.smoothscale(load_image('cat\\cat_base.png'),
+                                           (tile_width, tile_height)),
+              pygame.transform.smoothscale(load_image('cat\\cat_base_1.png'),
+                                           (tile_width, tile_height)),
+              pygame.transform.smoothscale(load_image('cat\\cat_base_2.png'),
+                                           (tile_width, tile_height)),
+              pygame.transform.smoothscale(load_image('cat\\cat_base_3.png'),
+                                           (tile_width, tile_height))]
+    motion_img = [pygame.transform.smoothscale(load_image('cat\\cat_motion_1.png'),
+                                               (tile_width, tile_height)),
+                  pygame.transform.smoothscale(load_image('cat\\cat_motion_2.png'),
+                                               (tile_width, tile_height)),
+                  pygame.transform.smoothscale(load_image('cat\\cat_motion_3.png'),
+                                               (tile_width, tile_height)),
+                  pygame.transform.smoothscale(load_image('cat\\cat_motion_2.png'),
+                                               (tile_width, tile_height))]
 
     def __init__(self, x, y):
         super().__init__(player_group, all_sprites)
-        self.image = Player.image
+        self.image = Player.images[0]
+        self.cadr = 0
         self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
         self.movement = False
         self.direction = (0, 0)
 
-    def update(self):
+    def update(self, time):
         self.rect = self.rect.move(self.direction[0], self.direction[1])
+        self.image = Player.motion_img[time % 4]
+        if self.direction[0] < 0:
+            self.image = pygame.transform.rotate(self.image, 90)
+        if self.direction[0] > 0:
+            self.image = pygame.transform.rotate(self.image, 270)
+        if self.direction[1] < 0:
+            self.image = pygame.transform.rotate(self.image, 0)
+        if self.direction[1] > 0:
+            self.image = pygame.transform.rotate(self.image, 180)
         if pygame.sprite.spritecollideany(self, grass):
             self.rect = self.rect.move((-self.direction[0], -self.direction[1]))
+            self.image = Player.images[0]
             self.movement = False
             self.direction = (0, 0)
+
+    def next_cadr(self):
+        if self.cadr == 1:
+            self.image = Player.images[1]
+            self.cadr = 2
+        elif self.cadr == 2:
+            self.image = Player.images[2]
+            self.cadr = 3
+        elif self.cadr == 3:
+            self.image = Player.images[1]
+            self.cadr = 4
+        elif self.cadr == 4:
+            self.image = Player.images[3]
+            self.cadr = 5
+        elif self.cadr == 5:
+            self.image = Player.images[0]
+            self.cadr = 0
 
 
 class BackBtn(pygame.sprite.Sprite):
@@ -285,6 +328,10 @@ def game(level):
     pygame.time.set_timer(MONEY_UPDATE, 80)
     PLAYER_MOVE = pygame.USEREVENT + 2
     pygame.time.set_timer(PLAYER_MOVE, 40)
+    PLAYER_WAIT = pygame.USEREVENT + 3
+    pygame.time.set_timer(PLAYER_WAIT, 100)
+    PLAYER_BLINKING = pygame.USEREVENT + 4
+    pygame.time.set_timer(PLAYER_BLINKING, 4000)
     step = tile_width
     fps = 60
     clock = pygame.time.Clock()
@@ -310,7 +357,11 @@ def game(level):
             if event.type == PLAYER_MOVE:
                 if any(player.direction):
                     player.movement = True
-                    player_group.update()
+                    player_group.update(pygame.time.get_ticks())
+            if event.type == PLAYER_BLINKING and not player.movement:
+                player.cadr = 1
+            if event.type == PLAYER_WAIT and not player.movement:
+                player.next_cadr()
         if backbtn.back:
             all_sprites.empty()
             grass.empty()
