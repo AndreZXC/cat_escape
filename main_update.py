@@ -12,6 +12,7 @@ door_gr = pygame.sprite.Group()
 money_sprites = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 buttons = pygame.sprite.Group()
+spikes_gr = pygame.sprite.Group()
 lvl = 0
 
 
@@ -42,7 +43,7 @@ def load_level(level):
             level.append('g' * (width // tile_width))
         for y in range(len(level)):
             for x in range(len(level[y])):
-                if level[y][x] == 'g':
+                if level[y][x] in ('g', 's'):
                     h1 = h2 = v1 = v2 = False
                     if x == 0:
                         h1 = True
@@ -60,7 +61,10 @@ def load_level(level):
                         v2 = True
                     elif level[y + 1][x] == 'g':
                         v2 = True
-                    Grass(x, y, (h1, h2, v1, v2))
+                    if level[y][x] == 'g':
+                        Grass(x, y, (h1, h2, v1, v2))
+                    else:
+                        Spike(x, y, (h1, h2, v1, v2))
                 if level[y][x] == 'd':
                     Door(x, y)
                 if level[y][x] == 'm':
@@ -219,6 +223,7 @@ class Player(pygame.sprite.Sprite):
         self.image = Player.images[0]
         self.cadr = 0
         self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
+        self.start = x, y
         self.movement = False
         self.direction = (0, 0)
 
@@ -277,6 +282,45 @@ class BackBtn(pygame.sprite.Sprite):
         if change_mode == 'press':
             if self.rect.collidepoint(pos):
                 self.back = True
+
+
+class Spike(pygame.sprite.Sprite):
+    image = load_image('spikes.png')
+
+    def __init__(self, x, y, neigbours):
+        super().__init__(all_sprites, spikes_gr)
+        if neigbours[0]:
+            self.image = pygame.transform.rotate(Spike.image, 270)
+            self.image = pygame.transform.smoothscale(self.image,
+                                                      (self.image.get_width() /
+                                                       self.image.get_height() * tile_width,
+                                                       tile_height))
+            self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
+        elif neigbours[1]:
+            self.image = pygame.transform.rotate(Spike.image, 90)
+            self.image = pygame.transform.smoothscale(self.image,
+                                                      (self.image.get_width() /
+                                                       self.image.get_height() * tile_width,
+                                                       tile_height))
+            self.rect = self.image.get_rect().move(tile_width * x +
+                                                   tile_width - self.image.get_width(),
+                                                   tile_height * y)
+        elif neigbours[2]:
+            self.image = pygame.transform.rotate(Spike.image, 180)
+            self.image = pygame.transform.smoothscale(self.image,
+                                                      (tile_width,
+                                                       self.image.get_height() /
+                                                       self.image.get_width() * tile_height))
+            self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
+        else:
+            self.image = Spike.image
+            self.image = pygame.transform.smoothscale(self.image,
+                                                      (tile_width,
+                                                       self.image.get_height() /
+                                                       self.image.get_width() * tile_height))
+            self.rect = self.image.get_rect().move(tile_width * x,
+                                                   tile_height * y +
+                                                   tile_height - self.image.get_height())
 
 
 def start():
