@@ -2,6 +2,7 @@ import pygame
 import os
 import sys
 
+pygame.mixer.pre_init(44100, -16, 1, 512)
 pygame.init()
 size = width, height = 720, 720
 screen = pygame.display.set_mode(size)
@@ -16,6 +17,9 @@ spikes_gr = pygame.sprite.Group()
 lvl = 0
 fps = 60
 clock = pygame.time.Clock()
+pygame.mixer.music.load('back_music.mp3')
+pygame.mixer.music.play(-1)
+door_sound = pygame.mixer.Sound('door.ogg')
 
 
 def load_image(name):
@@ -322,6 +326,7 @@ class Player(pygame.sprite.Sprite):
         self.cash += 1
 
     def exit(self):
+        door_sound.play()
         self.win = True
 
 
