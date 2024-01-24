@@ -14,6 +14,8 @@ player_group = pygame.sprite.Group()
 buttons = pygame.sprite.Group()
 spikes_gr = pygame.sprite.Group()
 lvl = 0
+fps = 60
+clock = pygame.time.Clock()
 
 
 def load_image(name):
@@ -185,7 +187,7 @@ class Money(pygame.sprite.Sprite):
         self.cut_sheet(Money.image, 1, 12)
         self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
-        self.rect = self.rect.move(tile_width * x, tile_height * y)
+        self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -217,27 +219,58 @@ class Player(pygame.sprite.Sprite):
                                                (tile_width, tile_height)),
                   pygame.transform.smoothscale(load_image('cat\\cat_motion_2.png'),
                                                (tile_width, tile_height))]
+    death_img = [pygame.transform.smoothscale(load_image('cat\\cat_dead.png'),
+                                              (tile_width, tile_height)),
+                 pygame.transform.smoothscale(load_image('cat\\cat_dead_1.png'),
+                                              (tile_width, tile_height)),
+                 pygame.transform.smoothscale(load_image('cat\\cat_dead_2.png'),
+                                              (tile_width, tile_height)),
+                 pygame.transform.smoothscale(load_image('cat\\cat_dead_3.png'),
+                                              (tile_width, tile_height))]
 
     def __init__(self, x, y):
-        super().__init__(player_group, all_sprites)
+        super().__init__(player_group)
+        self.cash = 0
         self.image = Player.images[0]
         self.cadr = 0
         self.rect = self.image.get_rect().move(tile_width * x, tile_height * y)
         self.start = x, y
         self.movement = False
         self.direction = (0, 0)
+        self.life = True
+        self.win = False
 
     def update(self, time):
         self.rect = self.rect.move(self.direction[0], self.direction[1])
         self.image = Player.motion_img[time % 4]
         if self.direction[0] < 0:
             self.image = pygame.transform.rotate(self.image, 90)
+            if pygame.sprite.spritecollideany(self, spikes_gr):
+                spike = pygame.sprite.spritecollideany(self, spikes_gr)
+                self.rect = self.rect.move((spike.rect.width, 0))
+                self.death()
         if self.direction[0] > 0:
             self.image = pygame.transform.rotate(self.image, 270)
+            if pygame.sprite.spritecollideany(self, spikes_gr):
+                spike = pygame.sprite.spritecollideany(self, spikes_gr)
+                self.rect = self.rect.move((-spike.rect.width, 0))
+                self.death()
         if self.direction[1] < 0:
             self.image = pygame.transform.rotate(self.image, 0)
+            if pygame.sprite.spritecollideany(self, spikes_gr):
+                spike = pygame.sprite.spritecollideany(self, spikes_gr)
+                self.rect = self.rect.move((0, spike.rect.height))
+                self.death()
         if self.direction[1] > 0:
             self.image = pygame.transform.rotate(self.image, 180)
+            if pygame.sprite.spritecollideany(self, spikes_gr):
+                spike = pygame.sprite.spritecollideany(self, spikes_gr)
+                self.rect = self.rect.move((0, -spike.rect.height))
+                self.death()
+        if pygame.sprite.spritecollideany(self, money_sprites):
+            self.get_money()
+        if pygame.sprite.spritecollideany(self, door_gr):
+            self.exit()
         if pygame.sprite.spritecollideany(self, grass):
             self.rect = self.rect.move((-self.direction[0], -self.direction[1]))
             self.image = Player.images[0]
@@ -260,6 +293,36 @@ class Player(pygame.sprite.Sprite):
         elif self.cadr == 5:
             self.image = Player.images[0]
             self.cadr = 0
+        if self.cadr == -1:
+            self.image = Player.images[0]
+            self.cadr = -2
+        elif self.cadr == -2:
+            self.image = Player.death_img[0]
+            self.cadr = -3
+        elif self.cadr == -3:
+            self.image = Player.death_img[1]
+            self.cadr = -4
+        elif self.cadr == -4:
+            self.image = Player.death_img[2]
+            self.cadr = -5
+        elif self.cadr == -5:
+            self.image = Player.death_img[3]
+            self.cadr = -6
+
+    def death(self):
+        self.life = False
+        self.movement = False
+        self.direction = (0, 0)
+        self.cadr = -1
+
+    def get_money(self):
+        money = pygame.sprite.spritecollideany(self, money_sprites)
+        money_sprites.remove(money)
+        all_sprites.remove(money)
+        self.cash += 1
+
+    def exit(self):
+        self.win = True
 
 
 class BackBtn(pygame.sprite.Sprite):
@@ -372,13 +435,10 @@ def game(level):
     pygame.time.set_timer(MONEY_UPDATE, 80)
     PLAYER_MOVE = pygame.USEREVENT + 2
     pygame.time.set_timer(PLAYER_MOVE, 40)
-    PLAYER_WAIT = pygame.USEREVENT + 3
-    pygame.time.set_timer(PLAYER_WAIT, 100)
+    PLAYER_ANIM = pygame.USEREVENT + 3
+    pygame.time.set_timer(PLAYER_ANIM, 100)
     PLAYER_BLINKING = pygame.USEREVENT + 4
     pygame.time.set_timer(PLAYER_BLINKING, 4000)
-    step = tile_width
-    fps = 60
-    clock = pygame.time.Clock()
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -387,13 +447,13 @@ def game(level):
                 money_sprites.update()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT and not player.movement:
-                    player.direction = (-step, 0)
+                    player.direction = (-tile_width, 0)
                 if event.key == pygame.K_RIGHT and not player.movement:
-                    player.direction = (+step, 0)
+                    player.direction = (tile_width, 0)
                 if event.key == pygame.K_DOWN and not player.movement:
-                    player.direction = (0, +step)
+                    player.direction = (0, tile_height)
                 if event.key == pygame.K_UP and not player.movement:
-                    player.direction = (0, -step)
+                    player.direction = (0, -tile_height)
             if event.type == pygame.MOUSEMOTION:
                 buttons.update(event.pos, 'move')
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -402,24 +462,39 @@ def game(level):
                 if any(player.direction):
                     player.movement = True
                     player_group.update(pygame.time.get_ticks())
-            if event.type == PLAYER_BLINKING and not player.movement:
+            if event.type == PLAYER_BLINKING and not player.movement and player.life:
                 player.cadr = 1
-            if event.type == PLAYER_WAIT and not player.movement:
-                player.next_cadr()
-        if backbtn.back:
+            if event.type == PLAYER_ANIM and not player.movement:
+                if player.life:
+                    player.next_cadr()
+                else:
+                    player.next_cadr()
+        if backbtn.back or player.win:
             all_sprites.empty()
             grass.empty()
             door_gr.empty()
             money_sprites.empty()
             player_group.empty()
             buttons.empty()
+            spikes_gr.empty()
             for i in range(10):
                 LevelBtn(i)
             backbtn = BackBtn((20, height - 20 - BackBtn.image.get_height()))
             return backbtn
+        if player.cadr == -6:
+            all_sprites.empty()
+            grass.empty()
+            door_gr.empty()
+            money_sprites.empty()
+            player_group.empty()
+            buttons.empty()
+            spikes_gr.empty()
+            player = load_level(f'{level}.txt')
+            backbtn = BackBtn((20, 20))
         pygame.display.flip()
         screen.blit(background_image, (0, 0))
         all_sprites.draw(screen)
+        player_group.draw(screen)
         clock.tick(fps)
 
 
